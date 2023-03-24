@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+    <edmx:Reference Uri="https://sap.github.io/odata-vocabularies/vocabularies/Common.xml">
+        <edmx:Include Alias="Common" Namespace="com.sap.vocabularies.Common.v1"/>
+    </edmx:Reference>
+    <edmx:Reference Uri="https://oasis-tcs.github.io/odata-vocabularies/vocabularies/Org.OData.Core.V1.xml">
+        <edmx:Include Alias="Core" Namespace="Org.OData.Core.V1"/>
+    </edmx:Reference>
+    <edmx:DataServices>
+        <Schema Namespace="CatalogService" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+            <EntityContainer Name="EntityContainer">
+                <EntitySet Name="Orders" EntityType="CatalogService.Orders">
+                    <NavigationPropertyBinding Path="itemno" Target="Orderitems"/>
+                    <NavigationPropertyBinding Path="customer" Target="Customers"/>
+                </EntitySet>
+                <EntitySet Name="Orderitems" EntityType="CatalogService.Orderitems">
+                    <NavigationPropertyBinding Path="product" Target="Products"/>
+                    <NavigationPropertyBinding Path="parent" Target="Orders"/>
+                </EntitySet>
+                <EntitySet Name="Customers" EntityType="CatalogService.Customers">
+                    <NavigationPropertyBinding Path="parent" Target="Orders"/>
+                </EntitySet>
+                <EntitySet Name="Products" EntityType="CatalogService.Products"/>
+            </EntityContainer>
+            <EntityType Name="Orders">
+                <Key>
+                    <PropertyRef Name="ordernum"/>
+                </Key>
+                <Property Name="ordernum" Type="Edm.Int32" Nullable="false"/>
+                <NavigationProperty Name="itemno" Type="Collection(CatalogService.Orderitems)"/>
+                <NavigationProperty Name="customer" Type="CatalogService.Customers">
+                    <ReferentialConstraint Property="CustomerID" ReferencedProperty="customerID"/>
+                </NavigationProperty>
+                <Property Name="salesorg" Type="Edm.String" MaxLength="4"/>
+                <Property Name="distchan" Type="Edm.String" MaxLength="2"/>
+                <Property Name="division" Type="Edm.String" MaxLength="2"/>
+                <Property Name="CustomerID" Type="Edm.String"/>
+                <Property Name="name" Type="Edm.String" MaxLength="40"/>
+            </EntityType>
+            <EntityType Name="Orderitems">
+                <Property Name="itemno" Type="Edm.Int32"/>
+                <NavigationProperty Name="product" Type="CatalogService.Products"/>
+                <Property Name="qty" Type="Edm.Int32"/>
+                <Property Name="price" Type="Edm.Decimal" Scale="2" Precision="15"/>
+                <NavigationProperty Name="parent" Type="CatalogService.Orders">
+                    <ReferentialConstraint Property="parent_ordernum" ReferencedProperty="ordernum"/>
+                </NavigationProperty>
+                <Property Name="parent_ordernum" Type="Edm.Int32"/>
+            </EntityType>
+            <EntityType Name="Customers">
+                <Key>
+                    <PropertyRef Name="customerID"/>
+                </Key>
+                <Property Name="customerID" Type="Edm.String" MaxLength="10" Nullable="false"/>
+                <Property Name="name" Type="Edm.String" MaxLength="40"/>
+                <NavigationProperty Name="parent" Type="CatalogService.Orders">
+                    <ReferentialConstraint Property="parent_ordernum" ReferencedProperty="ordernum"/>
+                </NavigationProperty>
+                <Property Name="parent_ordernum" Type="Edm.Int32"/>
+            </EntityType>
+            <EntityType Name="Products">
+                <Property Name="productno" Type="Edm.String" MaxLength="40"/>
+                <Property Name="name" Type="Edm.String" MaxLength="50"/>
+            </EntityType>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

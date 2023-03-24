@@ -1,0 +1,114 @@
+_schema-version: "3.1"
+ID: FirstCapDemo
+description: A simple CAP project.
+version: 1.0.0
+modules:
+  - name: FirstCapDemo-srv
+    type: nodejs
+    path: gen/srv
+    requires:
+      - name: FirstCapDemo-db
+      - name: FirstCapDemo-auth
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    parameters:
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: npm-ci
+  - name: FirstCapDemo-db-deployer
+    type: hdb
+    path: db
+    requires:
+      - name: FirstCapDemo-db
+    parameters:
+      buildpack: nodejs_buildpack
+  - name: FirstCapDemo-app-content
+    type: com.sap.application.content
+    path: .
+    requires:
+      - name: FirstCapDemo-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: resources
+      requires:
+        - artifacts:
+            - companyapporders.zip
+          name: companyapporders
+          target-path: resources/
+  - name: companyapporders
+    type: html5
+    path: app/orders
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm install
+        - npm run build:cf
+      supported-platforms:
+        []
+
+  - name: FirstCapDemo
+    type: approuter.nodejs
+    path: app/ # from cds.env.folders. Consider also cds.env.build.target -> gen/app
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+      - name: FirstCapDemo-auth
+resources:
+  - name: FirstCapDemo-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: FirstCapDemo-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-name: FirstCapDemo-html5-srv
+      service-plan: app-host
+  - name: FirstCapDemo-destination-service
+    type: org.cloudfoundry.managed-service
+    parameters:
+      config:
+        HTML5Runtime_enabled: false
+        init_data:
+          instance:
+            destinations:
+              - Authentication: NoAuthentication
+                Name: ui5
+                ProxyType: Internet
+                Type: HTTP
+                URL: https://ui5.sap.com
+            existing_destinations_policy: update
+        version: 1.0.0
+      service: destination
+      service-name: FirstCapDemo-destination-service
+      service-plan: lite
+  - name: FirstCapDemo-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: FirstCapDemo-${org}-${space}
+        tenant-mode: dedicated
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npx -p @sap/cds-dk cds build --production
